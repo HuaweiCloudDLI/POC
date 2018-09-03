@@ -11,8 +11,6 @@ import org.apache.spark.streaming.dis.{ConsumerStrategies, DISUtils}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.slf4j.LoggerFactory
 
-case class DwsInfo(url: String, userName: String, password: String, driver: String)
-
 object DisToDwsKMMogo {
   val log = LoggerFactory.getLogger("DisToDwsKMMogo")
 
