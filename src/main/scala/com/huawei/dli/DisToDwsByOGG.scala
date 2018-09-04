@@ -31,7 +31,7 @@ object DisToDwsByOGG {
     = (args(0), args(1), args(2), args(3), args(4), args(5), args(6), args(7), args(8).toInt)
 
     // ("jdbc:postgresql://veolia-dws.dws.myhuaweiclouds.com:8000/postgres", "dbadmin", "XXX")
-    val (dwsurl, username, dwspassword) = (args(8), args(9), args(10))
+    val (dwsurl, username, dwspassword) = (args(9), args(10), args(11))
 
 
     val driver = "org.postgresql.Driver"
