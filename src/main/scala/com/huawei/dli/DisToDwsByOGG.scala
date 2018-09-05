@@ -115,9 +115,9 @@ object DisToDwsByOGG {
             }
             tableRecords.put(tableName, list)
           case DELETE =>
-            val after = obj.get("before").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
-            val keyRecord = after.head
-            val record = OpRecord(INSERT, keyRecord.getKey, keyRecord.getValue.getAsString)
+            val before = obj.get("before").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
+            val keyRecord = before.head
+            val record = OpRecord(DELETE, keyRecord.getKey, keyRecord.getValue.getAsString)
             val list = Option(tableRecords.get(tableName)).map { list =>
               if (list.asScala.head.opType == DELETE) {
                 // every batch we do the insert
