@@ -99,10 +99,10 @@ object DisToDwsByOGG {
                 }
               } else {
                 // this case must be delete case
-                val sql = s"delete from $tableName ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+                val sql = s"delete from $tableName where ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
                 println(s"#### $sql ####")
                 val statement = connection.createStatement()
-                statement.execute(sql.replace("\"", "\'"))
+                statement.execute(sql)
                 statement.close()
                 val l = new util.ArrayList[OpRecord]()
                 l.add(record)
@@ -117,15 +117,15 @@ object DisToDwsByOGG {
           case DELETE =>
             val before = obj.get("before").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
             val keyRecord = before.head
-            val record = OpRecord(DELETE, keyRecord.getKey, keyRecord.getValue.getAsString)
+            val record = OpRecord(DELETE, keyRecord.getKey, s"\'${keyRecord.getValue.getAsString}\'")
             val list = Option(tableRecords.get(tableName)).map { list =>
               if (list.asScala.head.opType == DELETE) {
                 // every batch we do the insert
                 if (list.size() > batchSize) {
-                  val sql = s"delete from $tableName ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+                  val sql = s"delete from $tableName where ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
                   println(s"#### $sql ####")
                   val statement = connection.createStatement()
-                  statement.execute(sql.replace("\"", "\'"))
+                  statement.execute(sql)
                   statement.close()
                   new util.ArrayList[OpRecord]()
                 } else {
@@ -172,10 +172,10 @@ object DisToDwsByOGG {
               statement.execute(sql.replace("\"", "\'"))
               statement.close()
             case DELETE =>
-              val sql = s"delete from $tableName ${headRecord.key} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+              val sql = s"delete from $tableName where ${headRecord.key} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
               println(s"#### $sql ####")
               val statement = connection.createStatement()
-              statement.execute(sql.replace("\"", "\'"))
+              statement.execute(sql)
               statement.close()
           }
         }
