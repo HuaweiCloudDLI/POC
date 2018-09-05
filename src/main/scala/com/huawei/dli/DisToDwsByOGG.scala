@@ -80,63 +80,104 @@ object DisToDwsByOGG {
         opType = obj.get("op_type").getAsString
         opType match {
           case INSERT =>
+            val after = obj.get("after").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
+            val keyRecord = after.head
+            val record = OpRecord(INSERT, keyRecord.getKey, after.map(_.getValue).mkString("(", ",", ")"))
             val list = Option(tableRecords.get(tableName)).map { list =>
-              val after = obj.get("after").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
-              val keyRecord = after.head
               if (list.asScala.head.opType == INSERT) {
                 // every batch we do the insert
                 if (list.size() > batchSize) {
                   val sql = s"insert into table $tableName values ${list.asScala.map(_.row).mkString(",")}"
+                  println(s"#### $sql ####")
                   val statement = connection.createStatement()
-                  statement.execute(sql)
+                  statement.execute(sql.replace("\"", "\'"))
                   statement.close()
                   new util.ArrayList[OpRecord]()
                 } else {
-                  list.add(OpRecord(INSERT, keyRecord.getKey, after.map(_.getValue).mkString("(", ",", ")")))
+                  list.add(record)
                   list
                 }
               } else {
                 // this case must be delete case
                 val sql = s"delete from $tableName ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+                println(s"#### $sql ####")
                 val statement = connection.createStatement()
-                statement.execute(sql)
+                statement.execute(sql.replace("\"", "\'"))
                 statement.close()
-                new util.ArrayList[OpRecord]()
+                val l = new util.ArrayList[OpRecord]()
+                l.add(record)
+                l
               }
-            }.getOrElse(new util.ArrayList[OpRecord]())
+            }.getOrElse {
+              val l = new util.ArrayList[OpRecord]()
+              l.add(record)
+              l
+            }
             tableRecords.put(tableName, list)
           case DELETE =>
+            val after = obj.get("before").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
+            val keyRecord = after.head
+            val record = OpRecord(INSERT, keyRecord.getKey, keyRecord.getValue.getAsString)
             val list = Option(tableRecords.get(tableName)).map { list =>
-              val after = obj.get("after").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
-              val keyRecord = after.head
               if (list.asScala.head.opType == DELETE) {
                 // every batch we do the insert
                 if (list.size() > batchSize) {
                   val sql = s"delete from $tableName ${keyRecord.getKey} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+                  println(s"#### $sql ####")
                   val statement = connection.createStatement()
-                  statement.execute(sql)
+                  statement.execute(sql.replace("\"", "\'"))
                   statement.close()
                   new util.ArrayList[OpRecord]()
                 } else {
-                  list.add(OpRecord(INSERT, keyRecord.getKey, keyRecord.getValue.getAsString))
+                  list.add(record)
                   list
                 }
               } else {
                 // this case must be insert
-                val sql = s"insert into table $tableName values ${list.asScala.map(_.row).mkString(",")}"
+                val sql = s"insert into $tableName values ${list.asScala.map(_.row).mkString(",")}"
+                println(s"#### $sql ####")
                 val statement = connection.createStatement()
-                statement.execute(sql)
+                statement.execute(sql.replace("\"", "\'"))
                 statement.close()
-                new util.ArrayList[OpRecord]()
+                val l = new util.ArrayList[OpRecord]()
+                l.add(record)
+                l
               }
-            }.getOrElse(new util.ArrayList[OpRecord]())
+            }.getOrElse {
+              val l = new util.ArrayList[OpRecord]()
+              l.add(record)
+              l
+            }
             tableRecords.put(tableName, list)
           case UPDATE =>
-            val after = obj.get("after").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq.map(_.toString)
-            val sql = s"update $tableName set ${after.mkString(",")} where ${after.head}"
+            val after = obj.get("after").asInstanceOf[JsonObject].entrySet().iterator().asScala.toSeq
+            val keyRecord = after.head
+            val sql = s"update $tableName set ${after.mkString(",")} where ${after.map(_.toString).head}"
+            println(s"#### $sql ####")
             val statement = connection.createStatement()
-            statement.execute(sql)
+            statement.execute(sql.replace("\"", "\'"))
             statement.close()
+        }
+      }
+      tableRecords.entrySet().iterator().asScala.foreach { entry =>
+        val tableName = entry.getKey
+        val list = entry.getValue
+        if (list.size() > 0) {
+          val headRecord = list.asScala.head
+          headRecord.opType match {
+            case INSERT =>
+              val sql = s"insert into table $tableName values ${list.asScala.map(_.row).mkString(",")}"
+              println(s"#### $sql ####")
+              val statement = connection.createStatement()
+              statement.execute(sql.replace("\"", "\'"))
+              statement.close()
+            case DELETE =>
+              val sql = s"delete from $tableName ${headRecord.key} in ${list.asScala.map(_.row).mkString("(", ",", ")")}"
+              println(s"#### $sql ####")
+              val statement = connection.createStatement()
+              statement.execute(sql.replace("\"", "\'"))
+              statement.close()
+          }
         }
       }
     } catch {
@@ -146,7 +187,6 @@ object DisToDwsByOGG {
       if (connection != null) connection.close()
     }
   }
-
 
   /**
     * ogg msg is as follow:
